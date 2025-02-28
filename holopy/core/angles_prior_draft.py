@@ -12,7 +12,7 @@ from holopy.core.utils import ensure_listlike
 from holopy.core.process import center_find
 from holopy.core.holopy_object import HoloPyObject
 from holopy.scattering.errors import ParameterSpecificationError
-from holopy.core import prior
+from holopy.core.prior import Prior
 
 EPS = 1e-6
 
