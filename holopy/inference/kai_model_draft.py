@@ -72,6 +72,7 @@ class KaiModel(AlphaModel):
             # if the prior is theta
             elif p.name == "theta":
                 previous_theta = p.mu
+                k_param = p.concentration_parameter
                 theta = val
             # if the prior is phi
             elif p.name == "phi":
@@ -79,15 +80,22 @@ class KaiModel(AlphaModel):
                 phi = val
         # if phi and theta are both parameters then use von Mises-Fisher joint distribution
         if phi != np.nan and theta != np.nan:
-            # take dot product between past phi and theta and proposed phi and theta
-            dot_product = (np.cos(phi-previous_phi)*np.sin(theta)*np.sin(previous_theta)
-                        + np.cos(theta)*np.cos(previous_theta))
-            # add log of normalization and dot product times k parameter
             # k is concentration parameter k=0 is uniform distribution, k>0 is unimodal around average direction (set by p.mu)
-            k_param = 1
-            # log of normalization of von Mises-Fisher in 3 dimensions
-            ln_normal = np.log(k_param)-np.log(2*np.pi*(np.exp(k_param)-np.exp(-k_param)))
-            ln_von_mises_fisher = ln_normal + k_param*dot_product
+            # add special case for k is 0 (need to check this is correct since we want uniform in surface of sphere not in angle)
+            # I think this is correct for lnprob, but sampling so uniform would need to be different
+            if k_param == 0:
+                # log of sin(theta) which compensates for overrepresentation at the poles combined with 1/surface area of unit sphere 
+                # do I need a special case for theta = n*pi?
+                ln_von_mises_fisher = np.log(np.sin(theta)/(4*np.pi))
+            # if k is not zero
+            else:
+                # take dot product between past phi and theta and proposed phi and theta
+                dot_product = (np.cos(phi-previous_phi)*np.sin(theta)*np.sin(previous_theta)
+                            + np.cos(theta)*np.cos(previous_theta))
+                # log of normalization of von Mises-Fisher in 3 dimensions
+                ln_normal = np.log(k_param)-np.log(2*np.pi*(np.exp(k_param)-np.exp(-k_param)))
+                # add log of normalization and dot product times k parameter
+                ln_von_mises_fisher = ln_normal + k_param*dot_product
             sum_of_lnprob = ln_von_mises_fisher + sum_of_lnprob
         return sum_of_lnprob
         # return sum([p.lnprob(val) for p, val in zip(self._parameters, pars)])

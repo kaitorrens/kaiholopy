@@ -420,6 +420,59 @@ class ComplexPrior(TransformedPrior):
     def map_keys(self):
         return ((key, getattr(self, key)) for key in ['real', 'imag'])
 
+class Angles(Prior):
+    def __init__(self, concentration_parameter, theta, phi, guess=None, name=None):
+        """
+        Joint prior of phi and theta to implement the von Mises-Fisher distribution.
+        Aim is to avoid angles getting stuck due to finite range limits.
+
+        Parameters
+        ----------
+        concentration_parameter: float greater than or equal to zero 
+        Influences rate distribution falls off as we move away from mean vector 
+        position, 0 gives uniform distribution on a sphere.
+        theta, phi: floats 
+        These set the mean vector position, will take these modulo 
+        2 pi or pi as appropriate.
+        guess : float or None, optional
+            The value to take as an initial guess from the prior. If
+            guess is None, defaults to the midpoint of the prior for
+            proper priors.
+        name : string or None, optional
+            The name of the parameter.   
+        """
+        if concentration_parameter < 0:
+            raise ParameterSpecificationError(
+                    "Concentration parameter {} is not greater than or equal to zero".format(
+                    concentration_parameter))
+        self.concentration_parameter = concentration_parameter
+        self.theta = theta
+        self.phi = phi
+        self.name = name
+        # log of normalization of von Mises-Fisher in 3 dimensions
+        self.log_normalization = np.log(concentration_parameter)-np.log(
+            2*np.pi*(np.exp(concentration_parameter)-np.exp(-concentration_parameter)))
+        # not sure about this bit
+        if guess is None:
+            self.guess = theta, phi
+        else:
+            self.guess = guess
+
+    def lnprob(self, new_theta, new_phi):
+        # take dot product between past phi and theta and proposed phi and theta
+        dot_product = (np.cos(new_phi-self.phi)*np.sin(new_theta)*np.sin(self.theta)
+                        + np.cos(new_theta)*np.cos(self.theta))
+        # add log of normalization and dot product times k parameter
+        return (self.log_normalization + self.concentration_parameter*dot_product)
+        
+    
+    # don't know if I need a prob defined
+    def prob(self, p):
+        return "prob undefined for Angles prior"
+    
+    # I might also need to define a sample method
+    def sample(self, size=None):
+        return "sample undefined for Angles prior"
 
 def updated(prior, v, extra_uncertainty=0):
     """
