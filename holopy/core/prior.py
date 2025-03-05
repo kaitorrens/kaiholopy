@@ -473,6 +473,51 @@ class Angles(Prior):
     # I might also need to define a sample method
     def sample(self, size=None):
         return "sample undefined for Angles prior"
+    
+class Theta(Gaussian):
+    def __init__(self, mu, k, name="theta"):
+        """
+        Prior for theta to implement the von Mises-Fisher distribution, while
+        keeping phi and theta as seperate priors before implementing lnprior 
+        manually in a class. Aim is to avoid angles getting stuck due to finite
+        range limits.
+
+        Parameters
+        ----------
+        k: float greater than or equal to zero 
+        concentration_parameter, influences rate distribution falls off as we 
+        move away from mean vector position, 0 gives uniform distribution on a sphere.
+        mu: float
+        This sets the theta value for the mean vector position could take these modulo 2 pi 
+        name : string or None, optional
+            The name of the parameter, assumed to be theta by default  
+        """
+        self.concentration_parameter = k
+        # set sd so can use Gaussian but won't use
+        # this for anything meaningful (likely bettte way to do this)
+        sd = 1
+        super().__init__(mu,sd,name)
+
+class Phi(Gaussian):
+    def __init__(self, mu, name="phi"):
+        """
+        Prior for theta to implement the von Mises-Fisher distribution, while
+        keeping phi and theta as seperate priors before implementing lnprior 
+        manually in a class. Aim is to avoid angles getting stuck due to finite
+        range limits.
+
+        Parameters
+        ----------
+        mu: float
+        This sets the phi value for the mean vector position could take these modulo pi 
+        name : string or None, optional
+            The name of the parameter, assumed to be phi by default  
+        """
+        # set sd so can use Gaussian but won't use
+        # this for anything meaningful (likely bettte way to do this)
+        sd = 1
+        super().__init__(mu,sd,name)
+
 
 def updated(prior, v, extra_uncertainty=0):
     """

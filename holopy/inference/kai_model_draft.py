@@ -16,6 +16,8 @@ from holopy.core.mapping import Mapper, read_map, edit_map_indices
 OPTICS_KEYS = ['medium_index', 'illum_wavelen',
                'illum_polarization', 'noise_sd']
 
+EPS = 1e-6
+
 class KaiModel(AlphaModel):
     """
     Model of hologram image that enables joint priors for the angles
@@ -85,8 +87,11 @@ class KaiModel(AlphaModel):
             # I think this is correct for lnprob, but sampling so uniform would need to be different
             if k_param == 0:
                 # log of sin(theta) which compensates for overrepresentation at the poles combined with 1/surface area of unit sphere 
-                # do I need a special case for theta = n*pi?
-                ln_von_mises_fisher = np.log(np.sin(theta)/(4*np.pi))
+                # special case for theta = n*pi with n an integer to avoid -np.inf in likelihood (see uniform prior for another example of this)
+                if np.sin(theta) == 0:
+                    ln_von_mises_fisher = -1/EPS
+                else:
+                    ln_von_mises_fisher = np.log(np.sin(theta)/(4*np.pi))
             # if k is not zero
             else:
                 # take dot product between past phi and theta and proposed phi and theta
@@ -103,3 +108,10 @@ class KaiModel(AlphaModel):
     # For phi and theta define a lnprob for both together -> is p a prior object? 
     # seems like might need to define prior object to allow for different parameter K to be used
     # could also try to implement new prior object (under prior.py in holopy core)
+"""
+Test cases to consider:
+1) k is not zero, angles not at previous bounds ie) pi or 2pi
+2) k is zero, angles near bounds ie) pi or 2pi
+3) k = 0, sin(theta) not zero
+4) k = 0, sin(theta) = 0
+"""

@@ -70,8 +70,9 @@ class Angles(Prior):
         else:
             self.guess = guess
 
-    def lnprob(self, new_theta, new_phi):
+    def lnprob(self, angles):
         # take dot product between past phi and theta and proposed phi and theta
+        new_theta, new_phi = angles
         dot_product = (np.cos(new_phi-self.mean_phi)*np.sin(new_theta)*np.sin(self.mean_theta)
                         + np.cos(new_theta)*np.cos(self.mean_theta))
         # add log of normalization and dot product times k parameter
@@ -88,6 +89,22 @@ class Angles(Prior):
 
 class Theta(Gaussian):
     def __init__(self, mu, k, name="theta"):
+        """
+        Prior for theta to implement the von Mises-Fisher distribution, while
+        keeping phi and theta as seperate priors before implementing lnprior 
+        manually in a class. Aim is to avoid angles getting stuck due to finite
+        range limits.
+
+        Parameters
+        ----------
+        k: float greater than or equal to zero 
+        concentration_parameter, influences rate distribution falls off as we 
+        move away from mean vector position, 0 gives uniform distribution on a sphere.
+        mu: float
+        This sets the theta value for the mean vector position could take these modulo 2 pi 
+        name : string or None, optional
+            The name of the parameter, assumed to be theta by default  
+        """
         self.concentration_parameter = k
         # set sd so can use Gaussian but won't use
         # this for anything meaningful (likely bettte way to do this)
@@ -96,58 +113,20 @@ class Theta(Gaussian):
 
 class Phi(Gaussian):
     def __init__(self, mu, name="phi"):
+        """
+        Prior for theta to implement the von Mises-Fisher distribution, while
+        keeping phi and theta as seperate priors before implementing lnprior 
+        manually in a class. Aim is to avoid angles getting stuck due to finite
+        range limits.
+
+        Parameters
+        ----------
+        mu: float
+        This sets the phi value for the mean vector position could take these modulo pi 
+        name : string or None, optional
+            The name of the parameter, assumed to be phi by default  
+        """
         # set sd so can use Gaussian but won't use
         # this for anything meaningful (likely bettte way to do this)
         sd = 1
         super().__init__(mu,sd,name)
-
-class Uniform(Prior):
-    def __init__(self, lower_bound, upper_bound, guess=None, name=None):
-        """
-        Uniform prior.
-
-        Parameters
-        ----------
-        lower_bouund, upper_bound : float
-        guess : float or None, optional
-            The value to take as an initial guess from the prior. If
-            guess is None, defaults to the midpoint of the prior for
-            proper priors.
-        name : string or None, optional
-            The name of the parameter.
-        """
-        if lower_bound >= upper_bound:
-            raise ParameterSpecificationError(
-                    "Lower bound {} is not less than upper bound {}".format(
-                    lower_bound, upper_bound))
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
-        self.name = name
-
-        if np.isfinite(self.interval):
-            self._lnprob = np.log(1/self.interval)
-        else:
-            self._lnprob = -1/EPS  # don't want -inf to add likelihood
-
-        if guess is None:
-            if np.isfinite(lower_bound) and np.isfinite(upper_bound):
-                self.guess = (upper_bound + lower_bound) / 2
-            elif np.isfinite(lower_bound):
-                self.guess = lower_bound
-            elif np.isfinite(upper_bound):
-                self.guess = upper_bound
-            else:
-                self.guess = 0
-        elif guess < lower_bound or guess > upper_bound:
-            raise ParameterSpecificationError(
-                    "Guess {} is not within bounds {} and {}.".format(
-                    guess, lower_bound, upper_bound))
-        else:
-            self.guess = guess
-
-        if abs(self.guess) > 1e-12:
-            self.scale_factor = abs(self.guess)
-        elif np.isfinite(self.interval):
-            self.scale_factor = self.interval/10.
-        else:
-            self.scale_factor = 1.
