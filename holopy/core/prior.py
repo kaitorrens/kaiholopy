@@ -475,7 +475,7 @@ class Angles(Prior):
         return "sample undefined for Angles prior"
     
 class Theta(Gaussian):
-    def __init__(self, mu, k, name="theta"):
+    def __init__(self, k, mu, name="theta"):
         """
         Prior for theta to implement the von Mises-Fisher distribution, while
         keeping phi and theta as seperate priors before implementing lnprior 
@@ -494,12 +494,21 @@ class Theta(Gaussian):
         """
         self.concentration_parameter = k
         # set sd so can use Gaussian but won't use
-        # this for anything meaningful (likely bettte way to do this)
+        # this for anything meaningful (likely better way to do this)
         sd = 1
         super().__init__(mu,sd,name)
 
+    @property
+    def guess(self):
+        k = self.concentration_parameter
+        if k > 0:
+            return self.mu
+        elif k ==0:
+            return np.arccos(2*np.random.uniform(low=0.0, high=1.0)-1)
+    
+
 class Phi(Gaussian):
-    def __init__(self, mu, name="phi"):
+    def __init__(self, k, mu, name="phi"):
         """
         Prior for theta to implement the von Mises-Fisher distribution, while
         keeping phi and theta as seperate priors before implementing lnprior 
@@ -508,15 +517,29 @@ class Phi(Gaussian):
 
         Parameters
         ----------
+        k: float greater than or equal to zero 
+        concentration_parameter, influences rate distribution falls off as we 
+        move away from mean vector position, 0 gives uniform distribution on a sphere.
+        Note: must be the same for both phi and theta
         mu: float
         This sets the phi value for the mean vector position could take these modulo pi 
         name : string or None, optional
             The name of the parameter, assumed to be phi by default  
         """
+        self.concentration_parameter = k
         # set sd so can use Gaussian but won't use
         # this for anything meaningful (likely bettte way to do this)
         sd = 1
         super().__init__(mu,sd,name)
+
+    @property
+    def guess(self):
+        k = self.concentration_parameter
+        if k > 0:
+            return self.mu
+        elif k ==0:
+            return 2*np.pi*np.random.Generator.uniform(low=0.0, high=1.0)
+    
 
 
 def updated(prior, v, extra_uncertainty=0):
