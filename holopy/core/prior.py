@@ -538,7 +538,7 @@ class Phi(Gaussian):
         if k > 0:
             return self.mu
         elif k ==0:
-            return 2*np.pi*np.random.Generator.uniform(low=0.0, high=1.0)
+            return 2*np.pi*np.random.uniform(low=0.0, high=1.0)
     
 
 
