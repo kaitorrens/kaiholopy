@@ -506,8 +506,11 @@ class KaiModel(AlphaModel):
                 return -np.inf
             
         sum_of_lnprob = 0
-        theta = np.nan
-        phi = np.nan
+        # changed to [] from np.nan since np.nan != np.nan is true and so was triggering undesired behavior
+        new_theta = []
+        new_phi = []
+        # added a default k_param value in order to avoid UnboundLocalError: local variable 'k_param' referenced before assignment
+        k_param = []
         # currently requires theta and phi to be input as gaussian or bounded gaussian priors
         # even though we then treat them as a joint prior von Mises–Fisher distribution
 
@@ -520,28 +523,29 @@ class KaiModel(AlphaModel):
             elif p.name == "theta":
                 previous_theta = p.mu
                 k_param = p.concentration_parameter
-                theta = val
+                new_theta = val
             # if the prior is phi
             elif p.name == "phi":
                 previous_phi = p.mu
-                phi = val
+                k_param = p.concentration_parameter
+                new_phi = val
         # if phi and theta are both parameters then use von Mises-Fisher joint distribution
-        if phi != np.nan and theta != np.nan:
+        if new_phi != [] and new_theta != []:
             # k is concentration parameter k=0 is uniform distribution, k>0 is unimodal around average direction (set by p.mu)
             # add special case for k is 0 (need to check this is correct since we want uniform in surface of sphere not in angle)
-            # I think this is correct for lnprob, but sampling so uniform would need to be different
+            # I think this is correct for lnprob, but sampling so uniform would need to be different 
             if k_param == 0:
                 # log of sin(theta) which compensates for overrepresentation at the poles combined with 1/surface area of unit sphere 
                 # special case for theta = n*pi with n an integer to avoid -np.inf in likelihood (see uniform prior for another example of this)
-                if np.sin(theta) == 0:
+                if np.sin(new_theta) == 0:
                     ln_von_mises_fisher = -1/EPS
                 else:
-                    ln_von_mises_fisher = np.log(np.sin(theta)/(4*np.pi))
+                    ln_von_mises_fisher = np.log(np.sin(new_theta)/(4*np.pi))
             # if k is not zero
             else:
                 # take dot product between past phi and theta and proposed phi and theta
-                dot_product = (np.cos(phi-previous_phi)*np.sin(theta)*np.sin(previous_theta)
-                            + np.cos(theta)*np.cos(previous_theta))
+                dot_product = (np.cos(new_phi-previous_phi)*np.sin(new_theta)*np.sin(previous_theta)
+                            + np.cos(new_theta)*np.cos(previous_theta))
                 # log of normalization of von Mises-Fisher in 3 dimensions
                 ln_normal = np.log(k_param)-np.log(2*np.pi*(np.exp(k_param)-np.exp(-k_param)))
                 # add log of normalization and dot product times k parameter
@@ -553,6 +557,62 @@ class KaiModel(AlphaModel):
     # For phi and theta define a lnprob for both together -> is p a prior object? 
     # seems like might need to define prior object to allow for different parameter K to be used
     # could also try to implement new prior object (under prior.py in holopy core)
+
+    def generate_guess(self, n=1, scaling=1, seed=None):
+        # create list of non theta and non phi parameters
+        independent_parameters = []
+        previous_theta = np.nan
+        previous_phi = np.nan
+        index = 0
+        for p in self._parameters:
+            if p.name != "theta" and p.name != "phi":
+                independent_parameters.append(p)
+            # if the prior is theta
+            elif p.name == "theta":
+                theta_prior = p
+                previous_theta = p.mu
+                k_param = p.concentration_parameter
+                theta_index = index
+            # if the prior is phi
+            elif p.name == "phi":
+                phi_prior = p
+                previous_phi = p.mu
+                phi_index = index
+        index = index +1
+        # index += 1 but this has been behaving a bit weird
+        
+        # generate guess for jointly distributed angular parameters if applicable
+        # need to think about the arrays here to make sure my dimensions are doing what I expect
+        if previous_phi != np.nan and previous_theta != np.nan:
+            guess = np.array([[theta_prior.guess], [phi_prior.guess]])
+            # might not be treating uniform on a sphere correctly here ->
+            # don't think can just convert to vectors since won't be confined to the unit sphere (turns out this seems like the right way to go actually -> Circular mean wikipedia)
+            # problem is that there are two averages depending on which way around the sphere you go
+            if k_param == 0:
+                theta_sample = np.arccos(2*np.random.Generator.uniform(low=0.0, high=1.0, size=n)-1)
+                phi_sample = 2*np.pi*np.random.Generator.uniform(low=0.0, high=1.0, size=n)
+                raw_sample = np.array([[theta_sample], [phi_sample]])
+            '''
+            keep this on hold for now -> don't worry about generate_guess
+            else:
+                # convert angle mean to vector mean
+                mu = np.array([np.cos(previous_phi) * np.sin(previous_theta), np.sin(previous_phi) * np.sin(previous_theta), np.cos(previous_theta)])
+                vmf = vonmises_fisher(mu, k_param)
+                samples = vmf.rvs(n)
+                raw_sample = 
+            '''
+            # seems like should probably do this scaling in vector space and then convert back to angles
+            scaled_guess = guess + scaling*(raw_sample - guess)
+            scaled_theta = scaled_guess[0,:]
+            scaled_phi = scaled_guess[1,:]
+        # now need to vstack scaled guess with other parameters, may need to reorder the vstack as well
+        independent_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
+        intermediate_guesses = np.insert(independent_guesses,theta_index, scaled_theta, axis=0)
+        total_guesses = np.insert(intermediate_guesses, phi_index, scaled_phi, axis = 0)
+        return total_guesses.T
+    
+# prior.generate_guess returns the following: return np.vstack([scaled_sample(p) for p in parameters]).T 
+# where scaled sample returns scaled guess similar to defined above
 """
 Test cases to consider:
 1) k is not zero, angles not at previous bounds ie) pi or 2pi
