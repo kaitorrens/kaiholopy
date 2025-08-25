@@ -107,7 +107,11 @@ def unpack_attrs(a):
                 coords=attr_ref[attr],
                 dims=list(attr_ref[attr].keys()))
         elif attr in a:
-            new_attrs[attr] = yaml.safe_load(a[attr])
+            # added clause to correct bug from new numpy version introducing numpy.float64 datatype-> which affects noise_sd parameter
+            if isinstance(a[attr],np.float64):
+                new_attrs[attr] = float(a[attr])
+            else:
+                new_attrs[attr] = yaml.safe_load(a[attr])
         else:
             new_attrs[attr] = None
     return new_attrs

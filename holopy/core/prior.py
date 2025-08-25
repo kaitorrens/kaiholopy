@@ -492,15 +492,15 @@ class Theta(Gaussian):
         name : string or None, optional
             The name of the parameter, assumed to be theta by default  
         """
-        self.concentration_parameter = k
+        self.k = k
         # set sd so can use Gaussian but won't use
         # this for anything meaningful (likely better way to do this)
-        sd = 1
-        super().__init__(mu,sd,name)
+        #sd = 1 #try to just assign directly in super()
+        super().__init__(mu,1,name)
 
     @property
     def guess(self):
-        k = self.concentration_parameter
+        k = self.k
         if k > 0:
             return self.mu
         elif k ==0:
@@ -526,15 +526,15 @@ class Phi(Gaussian):
         name : string or None, optional
             The name of the parameter, assumed to be phi by default  
         """
-        self.concentration_parameter = k
+        self.k = k
         # set sd so can use Gaussian but won't use
         # this for anything meaningful (likely bettte way to do this)
-        sd = 1
-        super().__init__(mu,sd,name)
+        #sd = 1 #try to just assign directly in super()
+        super().__init__(mu,1,name)
 
     @property
     def guess(self):
-        k = self.concentration_parameter
+        k = self.k
         if k > 0:
             return self.mu
         elif k ==0:

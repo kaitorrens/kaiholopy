@@ -522,12 +522,12 @@ class KaiModel(AlphaModel):
             # if the prior is theta
             elif p.name == "theta":
                 previous_theta = p.mu
-                k_param = p.concentration_parameter
+                k_param = p.k # k is concentration parameter of the von Mises-Fisher distribution
                 new_theta = val
             # if the prior is phi
             elif p.name == "phi":
                 previous_phi = p.mu
-                k_param = p.concentration_parameter
+                k_param = p.k
                 new_phi = val
         # if phi and theta are both parameters then use von Mises-Fisher joint distribution
         if new_phi != [] and new_theta != []:
@@ -571,7 +571,7 @@ class KaiModel(AlphaModel):
             elif p.name == "theta":
                 theta_prior = p
                 previous_theta = p.mu
-                k_param = p.concentration_parameter
+                k_param = p.k
                 theta_index = index
             # if the prior is phi
             elif p.name == "phi":
