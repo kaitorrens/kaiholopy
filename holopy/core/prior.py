@@ -301,8 +301,11 @@ class BoundedGaussian(Gaussian):
         out = True
         while np.any(out):
             out = np.logical_or(val < self.lower_bound, val > self.upper_bound)
-            out = np.where(out)
-            val[out] = super().sample(len(out[0]))
+            fix_spots = np.where(out)
+            val[fix_spots] = super().sample(len(fix_spots[0]))
+            # Kai attempted fix on 11/18/26 previous code is below
+            # out = np.where(out)
+            # val[out] = super().sample(len(out[0]))
         return val
 
 
