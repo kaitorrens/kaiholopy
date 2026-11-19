@@ -583,7 +583,7 @@ class KaiModel(AlphaModel):
         
         # generate guess for jointly distributed angular parameters if applicable
         # need to think about the arrays here to make sure my dimensions are doing what I expect
-        if previous_phi != np.nan and previous_theta != np.nan:
+        if not np.isnan(previous_phi) and not np.isnan(previous_theta):
             guess = np.array([[theta_prior.guess], [phi_prior.guess]])
             # might not be treating uniform on a sphere correctly here ->
             # don't think can just convert to vectors since won't be confined to the unit sphere (turns out this seems like the right way to go actually -> Circular mean wikipedia)
@@ -591,6 +591,12 @@ class KaiModel(AlphaModel):
             if k_param == 0:
                 theta_sample = np.arccos(2*np.random.Generator.uniform(low=0.0, high=1.0, size=n)-1)
                 phi_sample = 2*np.pi*np.random.Generator.uniform(low=0.0, high=1.0, size=n)
+                raw_sample = np.array([[theta_sample], [phi_sample]])
+            # rough placeholder for when k!=0, prior to 11/17/26 just treated as ind. guassian with std = 0.1, feels like this std
+            # is probably too small.
+            else:
+                theta_sample = np.random.normal(guess[0,:], 0.1)
+                phi_sample = np.random.normal(guess[1,:], 0.1)
                 raw_sample = np.array([[theta_sample], [phi_sample]])
             '''
             keep this on hold for now -> don't worry about generate_guess
@@ -605,12 +611,20 @@ class KaiModel(AlphaModel):
             scaled_guess = guess + scaling*(raw_sample - guess)
             scaled_theta = scaled_guess[0,:]
             scaled_phi = scaled_guess[1,:]
-        # now need to vstack scaled guess with other parameters, may need to reorder the vstack as well
-        independent_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
-        intermediate_guesses = np.insert(independent_guesses,theta_index, scaled_theta, axis=0)
-        total_guesses = np.insert(intermediate_guesses, phi_index, scaled_phi, axis = 0)
+        
+            # first generate guesses for independent parameters normally
+            independent_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
+        
+            # now need to vstack scaled angular guesses with other parameters, may need to reorder the vstack as well
+            guesses_with_theta = np.insert(independent_guesses,theta_index, scaled_theta, axis=0)
+            total_guesses = np.insert(guesses_with_theta, phi_index, scaled_phi, axis = 0)
+        
+        # if either phi and/or theta is not present generate guesses for all parameters normally
+        else:
+            total_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
+        
         return total_guesses.T
-    
+            
 # prior.generate_guess returns the following: return np.vstack([scaled_sample(p) for p in parameters]).T 
 # where scaled sample returns scaled guess similar to defined above
 """
