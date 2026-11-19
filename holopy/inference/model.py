@@ -611,7 +611,6 @@ class KaiModel(AlphaModel):
             scaled_guess = guess + scaling*(raw_sample - guess)
             scaled_theta = scaled_guess[0,:]
             scaled_phi = scaled_guess[1,:]
-<<<<<<< HEAD
         
             # first generate guesses for independent parameters normally
             independent_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
@@ -624,20 +623,6 @@ class KaiModel(AlphaModel):
         else:
             total_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
         
-=======
-
-            # first generate guesses for independent parameters normally
-            independent_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
-
-            # now need to vstack scaled angular guesses with other parameters, may need to reorder the vstack as well
-            guesses_with_theta = np.insert(independent_guesses,theta_index, scaled_theta, axis=0)
-            total_guesses = np.insert(guesses_with_theta, phi_index, scaled_phi, axis = 0)
-
-        # if either phi and/or theta is not present generate guesses for all parameters normally
-        else:
-            total_guesses = prior.generate_guess(independent_parameters, n, scaling, seed).T
-
->>>>>>> origin
         return total_guesses.T
             
 # prior.generate_guess returns the following: return np.vstack([scaled_sample(p) for p in parameters]).T 
