@@ -679,8 +679,8 @@ class NoiseModel(KaiModel):
         Internal function taking pars as a list only
         """
         # instead of finding the fixed value for noise_sd read it from the pars
-        # noise_sd = self._find_noise(pars, data)
-        noise_sd = pars['noise_sd']
+        noise_sd = self._find_noise(pars, data)
+        #noise_sd = pars['noise_sd']
         N = data.size
         log_likelihood = ensure_scalar(
             -N/2 * np.log(2 * np.pi) -
