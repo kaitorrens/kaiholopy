@@ -644,7 +644,7 @@ class NoiseModel(KaiModel):
     def __init__(self, scatterer, alpha=1, noise_sd=None, medium_index=None,
                  illum_wavelen=None, illum_polarization=None, theory='auto',
                  constraints=[]):
-        self._model_parameters = {'noise': noise_sd}
+        # self._model_parameters = {'noise': noise_sd} may not be necessary since we pass explicitly to base Model class
         super().__init__(scatterer, alpha, noise_sd, medium_index, illum_wavelen,
                          illum_polarization, theory, constraints)
 '''
@@ -678,9 +678,9 @@ class NoiseModel(KaiModel):
         """
         Internal function taking pars as a list only
         """
-        # instead of finding the fixed value fo noise_sd read it from the pars
+        # instead of finding the fixed value for noise_sd read it from the pars
         # noise_sd = self._find_noise(pars, data)
-        noise_sd = pars['noise']
+        noise_sd = pars['noise_sd']
         N = data.size
         log_likelihood = ensure_scalar(
             -N/2 * np.log(2 * np.pi) -
