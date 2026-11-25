@@ -647,12 +647,12 @@ class NoiseModel(KaiModel):
         # self._model_parameters = {'noise': noise_sd} may not be necessary since we pass explicitly to base Model class
         super().__init__(scatterer, alpha, noise_sd, medium_index, illum_wavelen,
                          illum_polarization, theory, constraints)
-'''
+    '''
     # This is part of how alpha model incorporated alpha as a param
     @property
     def alpha(self):
         return read_map(self._maps['model'], self._parameters)['alpha']
-'''
+    '''
     # seems like can already include noise as parameter in the lnprior and so don't need to edit that
     # instead need to modify the likelihood
     def lnlike(self, pars, data):
